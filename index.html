@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width">
+	<title>Grafitti Lookup</title>
+	<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T"
+	 crossorigin="anonymous">
+
+	<style>
+		.content {
+			display: none;
+			margin: 1em;
+		}
+		.template {
+			display: none;
+         }
+	</style>
+</head>
+
+<body>
+      <nav class="navbar navbar-expand-lg navbar-light bg-light">
+            <a class="navbar-brand" href="#">Navbar</a>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+        </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav">
+          <li class="nav-item">
+            <a class="nav-link" href="#home">Search<span class="sr-only">(current)</span></a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#list">List</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#map">Map</a>
+          </li>
+        </ul>
+      </div>
+      </nav>
+    
+       <div class="card template" style="width: 18rem;">
+            <div class="card-body">
+                <p class="street-address">Card title</p>
+                <p class="request-number">Card title</p>
+                <p class="grafitti-location">Card title</p>
+                <p class="surface-type">Card title</p>
+                <p class="status">Card title</p>
+            </div>
+       </div>
+    
+       <div class="content" id="home">
+        Ward: <input type="text" id="ward"><br>
+        Status: <input type="text" id="status"><br>
+        <button id="search">Search</button>
+      </div>
+
+      <div class="content" id="list">
+        <div id="cards"></div>
+      </div>
+      <div class="content" id="map">
+      </div>
+  </body>
+   
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.3.1/js/bootstrap.min.js"></script>
+
+  <script>
+	$(document).ready(function(){
+            $("#home").show();
+        
+           function hideScreens() {
+              $(".content").hide();
+            }
+
+            $(".nav-link").on("click", function(){
+              hideScreens();
+              var target = $(this).attr("href");
+              $(target).show();
+            });
+        
+            var endpoint = "https://data.cityofchicago.org/resource/cdmx-wzbz.json?$limit=5";
+            
+            $("#search").on("click", function() {
+                $("#cards").empty();
+                var wardValue = $("#ward").val();
+                var statusVal = $("#status").val();
+
+                var url = endpoint + "&ward=" + wardValue;
+                url = url + "&status=" + statusVal;
+
+                $.get(url, function(response) {
+                  var data = response;
+
+                  $.each(data, function(i,v){
+                    var clone = $(".template").clone();
+                      
+                    clone.find(".street-address").text("Address:\n " + v.street_address);
+                    clone.find(".request-number").text("Request Number:\n " + v.service_request_number);
+                    clone.find(".grafitti-location").text("Grafitti-location:\n " + v.where_is_the_graffiti_located_);
+                    clone.find(".surface-type").text("Surface Type:\n " + v.what_type_of_surface_is_the_graffiti_on_);
+                    clone.find(".status").text("Status:\n " + v.status);
+                    
+                    if (v.status == "Completed"){
+                        clone.find(".status").text("Status:\n " + v.status + " on " + v.completion_date.substr(0, v.completion_date.indexOf('T')));
+                    }
+   
+                    clone.removeClass("template")
+
+                    // insert into DOM
+                    $("#cards").append(clone);
+                  });
+              })
+          });
+    });
+    </script>
+
+
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.6/umd/popper.min.js" integrity="sha384-wHAiFfRlMFy6i5SRaxvfOCifBUQy1xHdJ/yoi7FRNXMRBu5WHdZYu1hA6ZOblgut"
+	 crossorigin="anonymous"></script>
+	<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/js/bootstrap.min.js" integrity="sha384-B0UglyR+jN6CkvvICOB2joaf5I4l3gm9GU6Hc1og6Ls7i6U/mkkaduKaBhlAXv9k"
+	 crossorigin="anonymous"></script>
+    
+</html>
