@@ -9,6 +9,10 @@
 	 crossorigin="anonymous">
 
 	<style>
+        #map {
+            height: 400px;  /* The height is 400 pixels */
+            width: 100%;  /* The width is the width of the web page */
+        }
 		.content {
 			display: none;
 			margin: 1em;
@@ -21,7 +25,7 @@
 
 <body>
       <nav class="navbar navbar-expand-lg navbar-light bg-light">
-            <a class="navbar-brand" href="#">Navbar</a>
+            <a class="navbar-brand" href="#">Omar's Grafitti Removal Lookup</a>
             <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
         <span class="navbar-toggler-icon"></span>
         </button>
@@ -34,7 +38,10 @@
             <a class="nav-link" href="#list">List</a>
           </li>
           <li class="nav-item">
-            <a class="nav-link" href="#map">Map</a>
+            <a class="nav-link" href="#mapPage">Map</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="#about">About</a>
           </li>
         </ul>
       </div>
@@ -51,17 +58,78 @@
        </div>
     
        <div class="content" id="home">
-        Ward: <input type="text" id="ward"><br>
-        Status: <input type="text" id="status"><br>
-        <button id="search">Search</button>
+        Ward: <br>  <input type="text" id="ward"><br>
+        Status: <br><input type="text" id="status"><br>
+        Limit:  <br><input type="text" id="limit"><br>
+        <br><button id="search">Search</button>
       </div>
 
       <div class="content" id="list">
         <div id="cards"></div>
       </div>
-      <div class="content" id="map">
+      <div class="content" id="mapPage">
+         <div id="map"></div>
       </div>
-  </body>
+      <div class="content" id="about">
+          Omar's Grafitti Removal Lookup <br>
+          By: Omar Zorob <br>
+         <a href="https://github.com/ozorob2/it202-project2">Github Link</a>
+      </div>
+    
+    <script>
+      function initMap() {
+          var chicago = {lat: 41.8781, lng: -87.6298};
+          var map = new google.maps.Map(document.getElementById('map'), {zoom: 10, center: chicago});
+          return map;
+      }
+
+      function createMarkers (map, data) {
+        console.log(data);
+        $.each(data, function(i,v) {
+
+          var location = {lat: parseFloat(v.latitude), lng: parseFloat(v.longitude) }
+          var marker = new google.maps.Marker({position: location, map: map});
+
+          if (v.status == "Completed")
+              marker.setIcon('https://maps.google.com/mapfiles/ms/icons/green-dot.png')
+          else
+              marker.setIcon('https://maps.google.com/mapfiles/ms/icons/blue-dot.png')
+
+          var content = "Address: " + v.street_address + "<br>";
+          content += "Grafitti-location: " + v.where_is_the_graffiti_located_ + "<br>";
+          content += "Request Number: " + v.service_request_number + "<br>";
+          content += "Surface Type: " + v.what_type_of_surface_is_the_graffiti_on_ + "<br>";
+          
+          if (v.status == "Completed")
+              content += "Status: " + v.status + " on " + v.completion_date.substr(0, v.completion_date.indexOf('T')) + "<br>";
+          else
+              content += "Status:\n " + v.status + "<br>";
+
+         
+          var infowindow = new google.maps.InfoWindow({
+            content: content
+          });
+
+          marker.addListener('click', function() {
+            infowindow.open(map, marker);
+          });
+
+        });
+
+    }
+
+
+
+    </script>
+    <!--Load the API from the specified URL
+    * The async attribute allows the browser to render the page while the API loads
+    * The key parameter will contain your own API key (which is not needed for this tutorial)
+    * The callback parameter executes the initMap() function
+    -->
+    <script async defer
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDa4dMSOASs_iLQnhrPoQ8EZgj2Im_pZ7o&callback=initMap">
+    </script>
+    </body>
    
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.3.1/js/bootstrap.min.js"></script>
@@ -80,30 +148,47 @@
               $(target).show();
             });
         
-            var endpoint = "https://data.cityofchicago.org/resource/cdmx-wzbz.json?$limit=5";
+            var endpoint = "https://data.cityofchicago.org/resource/cdmx-wzbz.json?";
             
             $("#search").on("click", function() {
                 $("#cards").empty();
                 var wardValue = $("#ward").val();
                 var statusVal = $("#status").val();
+                var limitVal = $("#limit").val();
 
-                var url = endpoint + "&ward=" + wardValue;
-                url = url + "&status=" + statusVal;
+                var url = endpoint;
+                
+                if(limitVal != "")
+                    url = url + "$limit=" + limitVal;
+                
+                if (wardValue != "" && limitVal != "")
+                    url = url + "&ward=" + wardValue;
+                else if (wardValue != "")
+                    url = url + "ward=" + wardValue;
 
+                if (statusVal != "" && (wardValue != "" || limitVal != ""))
+                    url = url + "&status=" + statusVal;
+                else if (statusVal != "")
+                    url = url + "status=" + statusVal;
+
+                
+                var map = initMap();
+                
                 $.get(url, function(response) {
                   var data = response;
+                  createMarkers(map, data);
 
                   $.each(data, function(i,v){
                     var clone = $(".template").clone();
                       
-                    clone.find(".street-address").text("Address:\n " + v.street_address);
-                    clone.find(".request-number").text("Request Number:\n " + v.service_request_number);
-                    clone.find(".grafitti-location").text("Grafitti-location:\n " + v.where_is_the_graffiti_located_);
-                    clone.find(".surface-type").text("Surface Type:\n " + v.what_type_of_surface_is_the_graffiti_on_);
-                    clone.find(".status").text("Status:\n " + v.status);
+                    clone.find(".street-address").html("Address:" + "<br>" + v.street_address);
+                    clone.find(".request-number").html("Request Number:" + "<br>" + v.service_request_number);
+                    clone.find(".grafitti-location").html("Grafitti-location:" + "<br>" + v.where_is_the_graffiti_located_);
+                    clone.find(".surface-type").html("Surface Type:" + "<br>" + v.what_type_of_surface_is_the_graffiti_on_);
+                    clone.find(".status").html("Status:" + "<br>" + v.status);
                     
                     if (v.status == "Completed"){
-                        clone.find(".status").text("Status:\n " + v.status + " on " + v.completion_date.substr(0, v.completion_date.indexOf('T')));
+                        clone.find(".status").html("Status:<br> " + v.status + " on " + v.completion_date.substr(0, v.completion_date.indexOf('T')));
                     }
    
                     clone.removeClass("template")
@@ -115,7 +200,16 @@
           });
     });
     </script>
-
+    
+    
+    <script>
+        // register the service worker for offline use
+        if('serviceWorker' in navigator) {
+          navigator.serviceWorker
+                   .register('./sw.js')
+                   .then(function() { console.log("Service Worker Registered"); });
+        }
+    </script>
 
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.6/umd/popper.min.js" integrity="sha384-wHAiFfRlMFy6i5SRaxvfOCifBUQy1xHdJ/yoi7FRNXMRBu5WHdZYu1hA6ZOblgut"
